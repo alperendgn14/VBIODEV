@@ -56,13 +56,43 @@ def aykiri_deger_sil(dataframe, sutun):
     return dataframe[(dataframe[sutun] >= alt_sinir) & (dataframe[sutun] <= ust_sinir)]
 
 # Tüm sayısal sütunlar için aykırı değer temizliği
-sayisal_sutunlar_icin = ['avg_fare', 'distance_miles', 'passengers', 'largest_carrier_fare', 'lowest_fare']
+sayisal_sutunlar_icin = ['distance_miles', 'passengers','avg_fare','largest_carrier_market_share', 'largest_carrier_fare', 'lowest_fare_carrier_share','lowest_fare', 'fare_per_mile']
 for sutun in sayisal_sutunlar_icin:
     df = aykiri_deger_sil(df, sutun)
 
 
+# =====================================================================
+# AŞAMA 1.5: AYKIRI DEĞER (OUTLIER) TEMİZLİĞİ (IQR YÖNTEMİ)
+# =====================================================================
+print("\n" + "="*50)
+print("AYKIRI DEĞER (OUTLIER) TEMİZLİĞİ BAŞLIYOR...")
+print("="*50)
 
-# --- TEMİZLİK SONUCU ---
+# Temizlemeden önceki satır sayısını tutalım
+baslangic_satir = len(df)
+
+# 'avg_fare' (Ortalama Bilet Fiyatı) için IQR (Çeyrekler Açıklığı) hesaplama
+Q1 = df['avg_fare'].quantile(0.25) # Verinin %25'lik sınırı (Kutunun alt çizgisi)
+Q3 = df['avg_fare'].quantile(0.75) # Verinin %75'lik sınırı (Kutunun üst çizgisi)
+IQR = Q3 - Q1
+
+# İstatistiksel alt ve üst sınırları belirleme (1.5 katsayısı evrensel standarttır)
+alt_sinir = Q1 - 1.5 * IQR
+ust_sinir = Q3 + 1.5 * IQR
+
+print(f"Hesaplanan Alt Sınır: {alt_sinir:.2f}$")
+print(f"Hesaplanan Üst Sınır: {ust_sinir:.2f}$")
+
+# Sınırların dışındaki "Aykırı" verileri DataFrame'den atıyoruz
+df = df[(df['avg_fare'] >= alt_sinir) & (df['avg_fare'] <= ust_sinir)]
+
+silinen_kayit = baslangic_satir - len(df)
+print(f"Silinen Aşırı Uç (Aykırı) Kayıt Sayısı: {silinen_kayit}")
+print(f"Güncel Veri Seti Satır Sayısı: {len(df)}")
+
+
+
+# --- Temizlik sonucu ---
 son_satir = len(df)
 print(f"Başlangıçtaki ham satır sayısı: {ilk_satir}")
 print(f"Temizlenen (hatalı, mantıksız, aykırı veya boş) satır sayısı: {ilk_satir - son_satir}")
@@ -88,7 +118,10 @@ plt.show()
 # en yoğun 5 havayolunun fiyat dağılımı.
 plt.figure(figsize=(10, 6))
 en_buyukler = df['largest_carrier'].value_counts().nlargest(5).index
-sns.boxplot(x='largest_carrier', y='avg_fare', data=df[df['largest_carrier'].isin(en_buyukler)], palette='Set2')
+sns.boxplot(x='largest_carrier', y='avg_fare', 
+            data=df[df['largest_carrier'].isin(en_buyukler)], 
+            palette='Set2', 
+            showfliers=False) # BU KOMUT NOKTALARI GİZLER
 plt.title('En fazla uçuş yapan 5 havayolunun ortalama bilet fiyatı dağılımı')
 plt.xlabel('Havayolu şirketi')
 plt.ylabel('Dolar cinsinden ortalama bilet fiyatı')
@@ -136,7 +169,7 @@ else:
 # 3. hipotez - tek yönlü varyans analizi (anova)
 # h0: en büyük 3 havayolunun (WN, DL ve AA) taşıdığı ortalama yolcu sayıları eşittir.
 # h1: en az birinin taşıdığı ortalama yolcu sayısı diğerlerinden farklıdır.
-print("\n--- Hipotez 3: WN, DL ve AA Yolcu Sayısı Karşılaştırması (ANOVA) ---")
+print("\n--- Hipotez 3: WN, DL ve AA yolcu sayısı karşılaştırması (ANOVA) ---")
 wn_yolcu = df[df['largest_carrier'] == 'WN']['passengers']
 dl_yolcu = df[df['largest_carrier'] == 'DL']['passengers']
 aa_yolcu = df[df['largest_carrier'] == 'AA']['passengers']
@@ -194,7 +227,7 @@ print("\nanalizler tamamlandı")
 
 
 # =====================================================================
-# AŞAMA 5: GELİŞMİŞ İSTATİSTİKSEL ANALİZ VE GÖRSELLEŞTİRME PANELİ
+# panel kısmı
 # =====================================================================
 import tkinter as tk
 from tkinter import ttk
@@ -202,14 +235,14 @@ from tkinter import messagebox
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
-import numpy as np
+
 
 print("\n" + "="*50)
-print("AŞAMA 5: İNTERAKTİF KONTROL PANELİ BAŞLATILIYOR...")
+print("Test paneli başlatılıyor..")
 print("="*50)
 
 def test_degisti(event):
-    if test_secimi.get() == "Dağılım İncelemesi (Tek Değişken)":
+    if test_secimi.get() == "Tek değişkende dağılım analizi":
         sutun2_secimi.set('') 
         sutun2_secimi.config(state="disabled") 
     else:
@@ -227,7 +260,7 @@ def testi_calistir():
     
     try:
         # Veri Hazırlama ve n Örneklem Seçimi
-        if test_turu == "Korelasyon (Sayısal vs Sayısal)":
+        if test_turu == "Korelasyon":
             if not degisken2:
                 messagebox.showwarning("Uyarı", "Korelasyon için 2. değişkeni seçmelisiniz!")
                 return
@@ -244,12 +277,12 @@ def testi_calistir():
         return
 
     # --- 1. KORELASYON ANALİZİ ---
-    if test_turu == "Korelasyon (Sayısal vs Sayısal)":
+    if test_turu == "Korelasyon":
         try:
             r, p_val = stats.pearsonr(aktif_df[degisken1], aktif_df[degisken2])
             yorum = "Anlamlı ilişki var." if p_val < 0.05 else "Anlamlı ilişki yok."
             
-            detay = f"--- KORELASYON RAPORU (n={len(aktif_df)}) ---\n\n"
+            detay = f"--- Korelasyon sonucu (n={len(aktif_df)}) ---\n\n"
             detay += f"Değişkenler: {degisken1} & {degisken2}\n"
             detay += f"Pearson r: {r:.3f}\n"
             detay += f"P-Değeri: {p_val:.5f}\n\n"
@@ -265,7 +298,7 @@ def testi_calistir():
             messagebox.showerror("Hata", f"Korelasyon hatası: {e}")
 
     # --- 2. DAĞILIM VE NORMALLİK ANALİZİ (KDE + Q-Q) ---
-    elif test_turu == "Dağılım İncelemesi (Tek Değişken)":
+    elif test_turu == "Tek değişkende dağılım incelemesi":
         try:
             veri = aktif_df[degisken1]
             ortalama, medyan = veri.mean(), veri.median()
@@ -279,7 +312,7 @@ def testi_calistir():
             p_yazi = "< 0.001" if p_val < 0.001 else f"{p_val:.4f}"
             
             # Detaylı Rapor Metni
-            detay = f"--- {degisken1} DAĞILIM ANALİZİ (n={len(veri)}) ---\n\n"
+            detay = f"--- {degisken1} Dağılım analizi (n={len(veri)}) ---\n\n"
             detay += f"Ortalama: {ortalama:.2f}\n"
             detay += f"Medyan: {medyan:.2f}\n"
             detay += f"Std. Sapma: {std_sapma:.2f}\n\n"
@@ -288,7 +321,7 @@ def testi_calistir():
             detay += f"Shapiro-Wilk P: {p_yazi}\n"
             detay += "Sonuç: " + ("Normal değil." if p_val < 0.05 else "Normal dağılım.")
             
-            messagebox.showinfo("Detaylı Dağılım Raporu", detay)
+            messagebox.showinfo("Dağılım raporu", detay)
 
             # Grafik Çizimi (KDE ve Q-Q yan yana değil, alt alta veya ayrı pencerelerde de olabilir ama en iyisi yan yana)
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
@@ -297,7 +330,7 @@ def testi_calistir():
             sns.kdeplot(veri, fill=True, color='teal', ax=ax1, linewidth=2.5)
             ax1.axvline(ortalama, color='red', linestyle='--', label=f'Ort: {ortalama:.1f}')
             ax1.axvline(medyan, color='orange', linestyle='-', label=f'Med: {medyan:.1f}')
-            ax1.set_title(f'{degisken1} Yoğunluk Eğrisi (KDE)')
+            ax1.set_title(f'{degisken1} Yoğunluk eğrisi (KDE)')
             ax1.legend()
 
             # Q-Q Grafiği
@@ -314,15 +347,15 @@ def testi_calistir():
 
 # --- Arayüz Tasarımı ---
 arayuz = tk.Tk()
-arayuz.title("Uçuş Veri Analiz Laboratuvarı")
+arayuz.title("Uçuş veri analizi")
 arayuz.geometry("500x500")
 
 sayisal_listesi = df.select_dtypes(include=['float64', 'int64']).columns.tolist()
 
-tk.Label(arayuz, text="Gelişmiş İstatistik Paneli", font=("Arial", 16, "bold"), fg="#333").pack(pady=20)
+tk.Label(arayuz, text="Gelişmiş istatistik paneli", font=("Arial", 16, "bold"), fg="#333").pack(pady=20)
 
 tk.Label(arayuz, text="1. Analiz Türü Seçin:").pack()
-test_secimi = ttk.Combobox(arayuz, values=["Korelasyon (Sayısal vs Sayısal)", "Dağılım İncelemesi (Tek Değişken)"], state="readonly", width=45)
+test_secimi = ttk.Combobox(arayuz, values=["Korelasyon", "Tek değişkende dağılım incelemesi"], state="readonly", width=45)
 test_secimi.pack(pady=5)
 test_secimi.bind("<<ComboboxSelected>>", test_degisti)
 
@@ -339,7 +372,7 @@ n_secimi = ttk.Combobox(arayuz, values=["Tümü", "100", "500", "1000", "3000"],
 n_secimi.pack(pady=5)
 n_secimi.current(0)
 
-btn = tk.Button(arayuz, text="ANALİZİ BAŞLAT", command=testi_calistir, bg="#007bff", fg="white", font=("Arial", 11, "bold"), height=2, width=20)
+btn = tk.Button(arayuz, text="Analizi başlat", command=testi_calistir, bg="#007bff", fg="white", font=("Arial", 11, "bold"), height=2, width=20)
 btn.pack(pady=30)
 
 arayuz.attributes('-topmost', True)
