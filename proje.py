@@ -1,3 +1,7 @@
+
+# =====================================================================
+# 1. bölüm - veri işleme ve temizleme 
+# =====================================================================
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -5,7 +9,7 @@ import seaborn as sns
 from scipy import stats
 import warnings
 
-# Dosyayı okuyoruz (Dizini ayarlamıştın zaten)
+# Dosyayı okuyoruz 
 df = pd.read_excel('veri.xlsx')
 
 print("Sütunlar için veri temizliği.")
@@ -61,14 +65,12 @@ for sutun in sayisal_sutunlar_icin:
     df = aykiri_deger_sil(df, sutun)
 
 
-# =====================================================================
 # 1.5 IQR ile aykırı değerleri temizleme
-# =====================================================================
 print("\n" + "="*50)
 print("Aykırı değer temizliği başlatılıyor...")
 print("="*50)
 
-# Temizlemeden önceki satır sayısını tutalım
+# Temizlemeden önceki satır sayısını tut
 baslangic_satir = len(df)
 
 # 'avg_fare' (Ortalama Bilet Fiyatı) için IQR (Çeyrekler Açıklığı) hesaplama
@@ -100,7 +102,9 @@ print(f"Filtreleme sonrası kalan satır sayısı: {son_satir}")
 
 
 
-
+# =====================================================================
+# 2. bölüm - istatistik ve görselleştirme fonksiyonları
+# =====================================================================
 warnings.filterwarnings('ignore') # Konsoldaki gereksiz uyarıları gizler
 
 print("\n" + "="*50)
@@ -189,10 +193,8 @@ else:
     print("Sonuç (H0 Reddedilemez): Yolcu sayıları arasında anlamlı bir fark yoktur.")
 
 
-# =====================================================================
-# dağılım görselleştirme / normallik analizi
-# =====================================================================
 
+# dağılım görselleştirme / normallik analizi
 print("\n" + "="*50)
 print("normallik analizi")
 print("="*50)
@@ -238,7 +240,7 @@ print("\nanalizler tamamlandı")
 
 
 # =====================================================================
-# panel kısmı
+# 3. bölüm - panel kısmı
 # =====================================================================
 import tkinter as tk
 from tkinter import ttk
@@ -287,7 +289,7 @@ def testi_calistir():
         messagebox.showerror("Hata", f"Veri hazırlama hatası: {e}")
         return
 
-    # --- 1. KORELASYON ANALİZİ ---
+    # --- 1. Korelasyon analizi ---
     if test_turu == "Korelasyon":
         try:
             r, p_val = stats.pearsonr(aktif_df[degisken1], aktif_df[degisken2])
@@ -308,7 +310,7 @@ def testi_calistir():
         except Exception as e:
             messagebox.showerror("Hata", f"Korelasyon hatası: {e}")
 
-    # --- 2. DAĞILIM VE NORMALLİK ANALİZİ (KDE + Q-Q) ---
+    # --- 2. Dağılım ve normallik analizi (KDE + Q-Q) ---
     elif test_turu == "Tek değişkende dağılım incelemesi":
         try:
             veri = aktif_df[degisken1]
@@ -336,10 +338,10 @@ def testi_calistir():
             
             messagebox.showinfo("Dağılım raporu", detay)
 
-            # Grafik Çizimi (KDE ve Q-Q yan yana değil, alt alta veya ayrı pencerelerde de olabilir ama en iyisi yan yana)
+            # Grafik Çizimi
             fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
-            # KDE Grafiği (Sade, Dikdörtgensiz)
+            # KDE Grafiği 
             sns.kdeplot(veri, fill=True, color='teal', ax=ax1, linewidth=2.5)
             ax1.axvline(ortalama, color='red', linestyle='--', label=f'Ort: {ortalama:.1f}')
             ax1.axvline(medyan, color='orange', linestyle='-', label=f'Med: {medyan:.1f}')
