@@ -1,2 +1,1 @@
 # VBIODEV
-değerli bağlantılarım
