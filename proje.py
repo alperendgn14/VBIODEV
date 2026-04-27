@@ -62,10 +62,10 @@ for sutun in sayisal_sutunlar_icin:
 
 
 # =====================================================================
-# AŞAMA 1.5: AYKIRI DEĞER (OUTLIER) TEMİZLİĞİ (IQR YÖNTEMİ)
+# 1.5 IQR ile aykırı değerleri temizleme
 # =====================================================================
 print("\n" + "="*50)
-print("AYKIRI DEĞER (OUTLIER) TEMİZLİĞİ BAŞLIYOR...")
+print("Aykırı değer temizliği başlatılıyor...")
 print("="*50)
 
 # Temizlemeden önceki satır sayısını tutalım
@@ -76,14 +76,14 @@ Q1 = df['avg_fare'].quantile(0.25) # Verinin %25'lik sınırı (Kutunun alt çiz
 Q3 = df['avg_fare'].quantile(0.75) # Verinin %75'lik sınırı (Kutunun üst çizgisi)
 IQR = Q3 - Q1
 
-# İstatistiksel alt ve üst sınırları belirleme (1.5 katsayısı evrensel standarttır)
+# İstatistiksel alt ve üst sınırları belirleme (1.5 sayısı standart olduğu için kullandım.)
 alt_sinir = Q1 - 1.5 * IQR
 ust_sinir = Q3 + 1.5 * IQR
 
 print(f"Hesaplanan Alt Sınır: {alt_sinir:.2f}$")
 print(f"Hesaplanan Üst Sınır: {ust_sinir:.2f}$")
 
-# Sınırların dışındaki "Aykırı" verileri DataFrame'den atıyoruz
+# Sınırların dışındaki aykırı verileri veri setinden atıyoruz
 df = df[(df['avg_fare'] >= alt_sinir) & (df['avg_fare'] <= ust_sinir)]
 
 silinen_kayit = baslangic_satir - len(df)
@@ -121,13 +121,15 @@ en_buyukler = df['largest_carrier'].value_counts().nlargest(5).index
 sns.boxplot(x='largest_carrier', y='avg_fare', 
             data=df[df['largest_carrier'].isin(en_buyukler)], 
             palette='Set2', 
-            showfliers=False) # BU KOMUT NOKTALARI GİZLER
+            showfliers=False) 
 plt.title('En fazla uçuş yapan 5 havayolunun ortalama bilet fiyatı dağılımı')
 plt.xlabel('Havayolu şirketi')
 plt.ylabel('Dolar cinsinden ortalama bilet fiyatı')
 plt.show()
 
 # uçuş mesafesi / fiyat ilişkisi
+# neden pearson korelasyonu? -> değişkenlerin ikisi de sürekli veriler olduğu için 
+# 2 değişkenin birbiriyle nasıl oransal değiştiğini incelemek için kullandık.
 plt.figure(figsize=(10, 6))
 sns.scatterplot(x='distance_miles', y='avg_fare', data=df, alpha=0.4, color='purple')
 plt.title('Uçuş mesafesi ve Ortalama bilet fiyatı ilişkisi')
@@ -155,6 +157,8 @@ else:
 # 2. Hipotez - bağımsız çift örneklem t-testi
 # H0: WN ve DL havayollarının ortalama fiyatları arasında fark yoktur.
 # H1: İki havayolunun fiyatları arasında fark vardır.
+# neden t testi? -> iki havayolunun uçuşları, yolcuları v.s tamamen farklı olduğundan dolayı
+# t-testini daha uygun gördük. 
 print("\n--- Hipotez 2: WN ve DL Havayolları Fiyat Karşılaştırması (T-Test) ---")
 wn_fiyat = df[df['largest_carrier'] == 'WN']['avg_fare']
 dl_fiyat = df[df['largest_carrier'] == 'DL']['avg_fare']
@@ -169,6 +173,10 @@ else:
 # 3. hipotez - tek yönlü varyans analizi (anova)
 # h0: en büyük 3 havayolunun (WN, DL ve AA) taşıdığı ortalama yolcu sayıları eşittir.
 # h1: en az birinin taşıdığı ortalama yolcu sayısı diğerlerinden farklıdır.
+# neden anova? -> t-testi kullanmadık, çünkü a-b, a,c ve b-c olmak üzere 3 farklı test
+# yapmamız gerekecekti. böyle bir şey yapsaydık, hata oranımız artacaktı ve hatalı sonuç
+# alma olasılığımız da artacaktı. bu tip durumlar için 3 veya daha fazla grupta "aralarında
+# fark var mı" sorusuna en güvenilir yanıtı veren test anova olduğundan dolayı kullandık.
 print("\n--- Hipotez 3: WN, DL ve AA yolcu sayısı karşılaştırması (ANOVA) ---")
 wn_yolcu = df[df['largest_carrier'] == 'WN']['passengers']
 dl_yolcu = df[df['largest_carrier'] == 'DL']['passengers']
@@ -189,7 +197,10 @@ print("\n" + "="*50)
 print("normallik analizi")
 print("="*50)
 
-# 1. GÖRSEL EKLEMESİ: Ortalama Bilet Fiyatı Dağılım Grafiği (Histogram + KDE Eğrisi)
+# 1. görsel - ortalama bilet fiyatı dağılım grafiği (Eğri)
+# neden eğri ile yaptık da histogram ile yapmadık? -> histogram sütun sayısına çok bağlı
+# grafiğin şekli histogramda bazen çok sivri, bazen de çok düz görünebiliyordu. eğri ile
+# verinin sağa çarpıklığını çok daha rahat görüyoruz.
 plt.figure(figsize=(10, 6))
 sns.histplot(df['avg_fare'], bins=40, kde=True, color='teal', edgecolor='black')
 plt.title('Ortalama Bilet Fiyatlarının Normal Dağılım İncelemesi')
@@ -307,7 +318,9 @@ def testi_calistir():
             basiklik = veri.kurt()
             
             # Shapiro-Wilk (max 5000)
-            shapiro_data = veri.sample(min(len(veri), 5000))
+            shapiro_data = veri.sample(min(len(veri), 5000)) 
+            # neden 5000? -> shapiro testi büyük veri setlerinde fazla hassas olduğundan dolayı 
+            # 5000 eleman olan bir örneklem kullandık.
             w_stat, p_val = stats.shapiro(shapiro_data)
             p_yazi = "< 0.001" if p_val < 0.001 else f"{p_val:.4f}"
             
