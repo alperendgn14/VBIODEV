@@ -2,10 +2,26 @@
 # =====================================================================
 # 1. bölüm - veri işleme ve temizleme 
 # =====================================================================
-import pandas as pd
-import numpy as np
+
+
+# kütüphaneler import olmuyordu, onun için
+import sys
+sys.path.append(r"C:\ProgramData\anaconda3\Lib\site-packages")
+
+
+# veri temizleme için  
+import pandas as pd  
+
+
+# scipy'ın çalışması için gerekli
+import numpy as np 
+
+ 
+# ikisi de görselleştirme için
 import matplotlib.pyplot as plt
-import seaborn as sns
+import seaborn as sns 
+
+# simülasyon sonuçlarını scipy daha tutarlı hesapladığı için
 from scipy import stats
 import warnings
 
@@ -78,7 +94,7 @@ Q1 = df['avg_fare'].quantile(0.25) # Verinin %25'lik sınırı (Kutunun alt çiz
 Q3 = df['avg_fare'].quantile(0.75) # Verinin %75'lik sınırı (Kutunun üst çizgisi)
 IQR = Q3 - Q1
 
-# İstatistiksel alt ve üst sınırları belirleme (1.5 sayısı standart olduğu için kullandım.)
+# İstatistiksel alt ve üst sınırları belirleme
 alt_sinir = Q1 - 1.5 * IQR
 ust_sinir = Q3 + 1.5 * IQR
 
@@ -242,11 +258,20 @@ print("\nanalizler tamamlandı")
 # =====================================================================
 # 3. bölüm - panel kısmı
 # =====================================================================
+
+
+# arayüz için
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
+
+
+# ikisi de görselleştirme için
 import matplotlib.pyplot as plt
 import seaborn as sns
+
+
+# simülasyon sonuçlarını scipy daha tutarlı hesapladığı için
 from scipy import stats
 
 
